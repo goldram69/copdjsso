@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Site</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <!-- Other navigation links -->
+            <a href="{{ forum_url }}">Visit our Forum</a>
+        </nav>
+    </header>
+    <main>
+        {% block content %}
+        <!-- Your page-specific content -->
+        {% endblock %}
+    </main>
+    <footer>
+        <!-- Footer content -->
+    </footer>
+</body>
+</html>
+

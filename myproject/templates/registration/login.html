@@ -1,0 +1,11 @@
+{% if user.is_authenticated %}
+    <h2>Welcome, {{ user.username }}</h2>  <!-- ✅ Fix lookup failure -->
+{% else %}
+    <h2>Login</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Login</button>
+    </form>
+{% endif %}
+
