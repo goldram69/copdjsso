@@ -5,6 +5,7 @@ import base64
 import hmac
 import hashlib
 import urllib.parse
+import requests
 
 
 from django.conf import settings
@@ -17,7 +18,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import login
 from .exceptions import SSOValidationError
 from .mixins import BaseSSOViewMixin
-from .sso import error_response
+from .sso import fix_base64_padding, error_response, generate_sso_payload, build_redirect_url, decode_sso_payload, verify_signature  # Make sure these functions exist and work correctly.
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.views import LoginView
 
@@ -70,26 +71,33 @@ class DiscourseSSOProviderView(BaseSSOViewMixin, View):
         try:
             decoded_payload = base64.b64decode(fixed_sso).decode("utf-8")
         except UnicodeDecodeError:
-            logger.error(f"Failed UTF-8 decoding. Raw decoded payload: {base64.b64decode(fixed_sso)}")
+            #logger.error(f"Failed UTF-8 decoding. Raw decoded payload: {base64.b64decode(fixed_sso)}")
+            logger.error("Failed decoding SSO payload: %s", base64.b64decode(fixed_sso))
             return HttpResponseBadRequest("SSO payload decoding failed.")
 
         logger.debug(f"Decoded SSO payload: {decoded_payload}")
         params = dict(item.split("=") for item in decoded_payload.split("&") if "=" in item)
         nonce = params.get("nonce")
         return_sso_url = params.get("return_sso_url")
+
         if not nonce or not return_sso_url:
             logger.error("SSO payload missing required nonce or return_sso_url")
             return HttpResponseBadRequest("Invalid SSO payload.")
 
         # If user is not authenticated, redirect them to login
         if not request.user.is_authenticated:
-            return redirect(f"/accounts/login/?sso={sso}&sig={sig}")
+            login_url = f"/accounts/login/?sso={sso}&sig={sig}"
+            #return redirect(f"/accounts/login/?sso={sso}&sig={sig}")
+            logger.debug(f"User not authenticated, redirecting to {login_url}")
+            return redirect(login_url)
 
         # Now that the user is authenticated, generate a return payload.
         try:
             # This function should build a query string that includes external_id, email, username, etc.
+            #response_payload = generate_sso_payload(request.user, nonce, return_sso_url)
             response_payload = generate_sso_payload(request.user, nonce, return_sso_url)
             redirect_url = build_redirect_url(return_sso_url, response_payload)
+            logger.debug(f"Redirecting user to: {redirect_url}")
             return HttpResponseRedirect(redirect_url)
         except Exception as e:
             logger.error("Error generating SSO response: %s", e)
@@ -137,8 +145,6 @@ class DiscourseSSOProviderView(BaseSSOViewMixin, View):
      logger.info("SSO login processed successfully for user %s", user.id)
      return redirect(redirect_url) 
 
-# Import helper functions from your SSO module
-from .sso import decode_sso_payload, verify_signature, generate_sso_payload, build_redirect_url
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -188,7 +194,7 @@ def discourse_sso_provider(request):
     sig = request.GET.get('sig')
 
     # Verify signature
-    expected_sig = hmac.new(DISCOURSE_SSO_SECRET.encode(), sso_payload.encode(), hashlib.sha256).hexdigest()
+    expected_sig = hmac.new(DISCOURSE_CONNECT_SECRET.encode(), sso_payload.encode(), hashlib.sha256).hexdigest()
     if expected_sig != sig:
         return HttpResponseBadRequest("Invalid SSO request.")
 
@@ -207,13 +213,17 @@ def discourse_sso_provider(request):
         return HttpResponseBadRequest("User not found.")
 
 class CustomLoginView(LoginView):
+    template_name = "registration/login.html"
     """Preserve SSO parameters when redirecting after login"""
     def get_success_url(self):
-        next_url = self.request.GET.get("next", "/")
-        sso = self.request.GET.get("sso", "")
-        sig = self.request.GET.get("sig", "")
+        #next_url = self.request.GET.get("next", "/")
+        sso = self.request.GET.get("sso")
+        sig = self.request.GET.get("sig")
 
         # Ensure we only redirect when valid SSO parameters are present
         if sso and sig:
-            return f"/discourse/session/sso_provider/?sso={sso}&sig={sig}"
-        return next_url
+            #return f"/discourse/session/sso_provider/?sso={sso}&sig={sig}"
+            #return f"/discourse/session/sso_provider/?sso={sso}&sig={sig}"
+            return "/discourse/session/sso_provider/?sso={}&sig={}".format(sso, sig)
+        #return next_url
+        return super().get_success_url()

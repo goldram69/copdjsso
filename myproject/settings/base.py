@@ -6,7 +6,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Load other environment variables as needed.
-DISCOURSE_INSTANCE_URL = os.getenv('DISCOURSE_INSTANCE_URL', '<url>')
+DISCOURSE_INSTANCE_URL = os.getenv('DISCOURSE_INSTANCE_URL', 'http://192.168.1.27')
 
 # Installed apps should include these core Django apps for the admin to function properly.
 INSTALLED_APPS = [
@@ -104,3 +104,4 @@ ROOT_URLCONF = 'myproject.urls'
 
 LOGIN_REDIRECT_URL = "/discourse/session/sso_provider/?sso={sso}&sig={sig}"
 #LOGIN_REDIRECT_URL = "/discourse/session/sso_provider/"
+
