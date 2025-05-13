@@ -16,11 +16,11 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth import login
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.views import LoginView
 from .exceptions import SSOValidationError
 from .mixins import BaseSSOViewMixin
 from .sso import fix_base64_padding, error_response, generate_sso_payload, build_redirect_url, decode_sso_payload, verify_signature  # Make sure these functions exist and work correctly.
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.views import LoginView
 
 logger = logging.getLogger(__name__)
 DISCOURSE_CONNECT_SECRET = settings.DISCOURSE_CONNECT_SECRET  # Same shared secret
@@ -36,13 +36,13 @@ def sync_discourse_user(sso, sig):
             "Api-Username": settings.DISCOURSE_ADMIN_USERNAME,
         }
 
-        response = requests.post(sync_url, json=sync_data, headers=headers)
+        response = requests.post(sync_url, json=sync_data, headers=headers, timeout=10)
         response.raise_for_status()  # Ensure HTTP errors raise exceptions
     except requests.exceptions.RequestException as e:
         logger.error("Failed to sync user with Discourse: %s", e)
 
 def index(request):
- return HttpResponse("Discourse app home. Please use the proper SSO URLs.")
+    return HttpResponse("Discourse app home. Please use the proper SSO URLs.")
 
 
 def fix_base64_padding(encoded_str):
@@ -61,7 +61,7 @@ class DiscourseSSOProviderView(BaseSSOViewMixin, View):
     def get(self, request):
         sso = request.GET.get('sso')
         sig = request.GET.get('sig')
-        logger.debug(f"Incoming GET parameters: {request.GET}")
+        logger.debug(f"Incoming GET parameters: %s", request.GET)
 
         if not sso or not sig:
             logger.error("Missing SSO parameters in request: %s", request.GET)
@@ -75,7 +75,7 @@ class DiscourseSSOProviderView(BaseSSOViewMixin, View):
             logger.error("Failed decoding SSO payload: %s", base64.b64decode(fixed_sso))
             return HttpResponseBadRequest("SSO payload decoding failed.")
 
-        logger.debug(f"Decoded SSO payload: {decoded_payload}")
+        logger.debug(f"Decoded SSO payload: %s", decoded_payload)
         params = dict(item.split("=") for item in decoded_payload.split("&") if "=" in item)
         nonce = params.get("nonce")
         return_sso_url = params.get("return_sso_url")
@@ -88,64 +88,62 @@ class DiscourseSSOProviderView(BaseSSOViewMixin, View):
         if not request.user.is_authenticated:
             login_url = f"/accounts/login/?sso={sso}&sig={sig}"
             #return redirect(f"/accounts/login/?sso={sso}&sig={sig}")
-            logger.debug(f"User not authenticated, redirecting to {login_url}")
+            logger.debug(f"User not authenticated, redirecting to %s", login_url)
             return redirect(login_url)
 
         # Now that the user is authenticated, generate a return payload.
         try:
-            # This function should build a query string that includes external_id, email, username, etc.
+            #This function should build a query string that includes external_id, email, username, etc.
             #response_payload = generate_sso_payload(request.user, nonce, return_sso_url)
             response_payload = generate_sso_payload(request.user, nonce, return_sso_url)
             redirect_url = build_redirect_url(return_sso_url, response_payload)
-            logger.debug(f"Redirecting user to: {redirect_url}")
+            logger.debug(f"Redirecting user to: %s", redirect_url)
             return HttpResponseRedirect(redirect_url)
         except Exception as e:
             logger.error("Error generating SSO response: %s", e)
             return HttpResponseBadRequest("Error generating SSO response.")
 
     def post(self, request):
-     sso = request.POST.get('sso')
-     sig = request.POST.get('sig')
-    
+        sso = request.POST.get('sso')
+        sig = request.POST.get('sig')
+ 
      if not sso or not sig:
-        logger.error("Missing SSO parameters in POST request.")
-        return HttpResponseBadRequest("Missing SSO parameters.")
+            logger.error("Missing SSO parameters in POST request.")
+            return HttpResponseBadRequest("Missing SSO parameters.")
 
-     try:
-        verify_signature(sso, sig)
-        payload = decode_sso_payload(sso)
-     except Exception as e:
-        logger.error("Error verifying SSO payload in POST: %s", e)
-        return HttpResponseBadRequest("Invalid payload or signature.")
+        try:
+            verify_signature(sso, sig)
+            payload = decode_sso_payload(sso)
+        except Exception as e:
+            logger.error("Error verifying SSO payload in POST: %s", e)
+            return HttpResponseBadRequest("Invalid payload or signature.")
 
-     nonce = payload.get("nonce")
-     return_sso_url = payload.get("return_sso_url")
-     external_id = payload.get("external_id")  # Ensure external_id is provided
+        nonce = payload.get("nonce")
+        return_sso_url = payload.get("return_sso_url")
+        external_id = payload.get("external_id")  # Ensure external_id is provided
 
-     if not nonce or not return_sso_url or not external_id:
-        logger.error("Missing required parameters in payload (POST).")
-        return HttpResponseBadRequest("Missing required parameters in payload.")
+        if not nonce or not return_sso_url or not external_id:
+            logger.error("Missing required parameters in payload (POST).")
+            return HttpResponseBadRequest("Missing required parameters in payload.")
 
     # Authenticate user in Django using external_id
      User = get_user_model()
-     try:
-        user = User.objects.get(id=external_id)
-        login(request, user)  # Log in user in Django session
-     except User.DoesNotExist:
-        logger.error("SSO login failed: User not found in Django.")
-        return HttpResponseBadRequest("User not found.")
+        try:
+            user = User.objects.get(id=external_id)
+            login(request, user)  # Log in user in Django session
+        except User.DoesNotExist:
+            logger.error("SSO login failed: User not found in Django.")
+            return HttpResponseBadRequest("User not found.")
 
-     try:
-        response_payload = generate_sso_payload(user, nonce, return_sso_url)
-        redirect_url = build_redirect_url(return_sso_url, response_payload)
-     except Exception as e:
-        logger.error("Error generating SSO response in POST: %s", e)
-        return HttpResponseBadRequest("Error generating SSO response.")
+        try:
+            response_payload = generate_sso_payload(user, nonce, return_sso_url)
+            redirect_url = build_redirect_url(return_sso_url, response_payload)
+        except Exception as e:
+            logger.error("Error generating SSO response in POST: %s", e)
+            return HttpResponseBadRequest("Error generating SSO response.")
 
-     logger.info("SSO login processed successfully for user %s", user.id)
-     return redirect(redirect_url) 
-
-
+        logger.info("SSO login processed successfully for user %s", user.id)
+        return redirect(redirect_url) 
 
 @method_decorator(csrf_exempt, name='dispatch')
 @method_decorator(login_required, name='dispatch')
@@ -186,8 +184,6 @@ class DiscourseSSOLoginView(View):
         logger.info("SSO login processed successfully for user %s", request.user.id)
         return redirect(redirect_url)
 
-
-
 def discourse_sso_provider(request):
     """Handles Discourse SSO login requests."""
     sso_payload = request.GET.get('sso')
@@ -226,4 +222,4 @@ class CustomLoginView(LoginView):
             #return f"/discourse/session/sso_provider/?sso={sso}&sig={sig}"
             return "/discourse/session/sso_provider/?sso={}&sig={}".format(sso, sig)
         #return next_url
-        return super().get_success_url()
+           return super().get_success_url()

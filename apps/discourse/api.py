@@ -1,12 +1,12 @@
 # apps/discourse/api.py
-import requests
 import hmac
 import hashlib
 import logging
 import base64
+import requests
 from django.conf import settings
-from .sso import generate_sso_payload, build_redirect_url
 from django.contrib.auth import get_user_model
+from .sso import generate_sso_payload
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -38,7 +38,7 @@ def sync_user_with_discourse(user):
     
     # Step 1: Skip superuser accounts
     if user.is_superuser:
-        logger.info(f"Skipping sync for Django superuser: {user.username}")
+        logger.info(f"Skipping sync for Django superuser: %s",  user.username)
         return
     
     nonce = "sync_nonce"
@@ -62,9 +62,9 @@ def sync_user_with_discourse(user):
     try:
         response = requests.post(sync_url, json=data, headers=headers, verify=False)
         response.raise_for_status()
-        logger.info(f"User {user.username} synchronized with Discourse successfully.")
+        logger.info(f"User %s synchronized with Discourse successfully.", user.username)
     except requests.RequestException as e:
-        logger.error(f"Failed to sync user {user.username} with Discourse: {e}")
+        logger.error(f"Failed to sync user %s with Discourse: %s",user.username, e)
 
 def fetch_discourse_data(endpoint, params=None):
     """
@@ -76,10 +76,9 @@ def fetch_discourse_data(endpoint, params=None):
             "Api-Key": settings.DISCOURSE_API_KEY,
             "Api-Username": "system",
         }
-        response = requests.get(url, params=params, headers=headers)
+        response = requests.get(url, params=params, headers=headers, timeout=10)
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
         logger.error("Error fetching data from Discourse endpoint %s: %s", endpoint, e)
         raise Exception("Error fetching data from Discourse") from e
-

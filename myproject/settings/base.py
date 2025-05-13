@@ -1,6 +1,6 @@
 import os
-import dotenv
 from pathlib import Path
+import dotenv
 
 # Define the base directory for the project.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -40,13 +40,15 @@ MIDDLEWARE = [
 # This tells Django how and where to load templates (including admin templates).
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',  # Must be defined for admin to work
+        # Must be defined for admin to work
+        'BACKEND': 'django.template.backends.django.DjangoTemplates', 
         'DIRS': [
                   BASE_DIR / 'templates',
                   BASE_DIR / 'myproject/templates',  # Add this if needed
                 ],  # Optional: add your custom template directories here
 
-        'APP_DIRS': True,  # Enables Django to search for templates in each app’s 'templates' directory
+        # Enables Django to search for templates in each app’s 'templates' directory
+        'APP_DIRS': True, 
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -104,4 +106,3 @@ ROOT_URLCONF = 'myproject.urls'
 
 LOGIN_REDIRECT_URL = "/discourse/session/sso_provider/?sso={sso}&sig={sig}"
 #LOGIN_REDIRECT_URL = "/discourse/session/sso_provider/"
-

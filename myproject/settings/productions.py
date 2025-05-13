@@ -1,6 +1,6 @@
 # project/settings/production.py
-from .base import *
 import os
+from .base import *
 
 DEBUG = False
 ALLOWED_HOSTS = ['yourproductiondomain.com']  # Update this with your production domain
@@ -19,7 +19,7 @@ DATABASES = {
 # Email settings for production (using SMTP provider with authentication)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST')  # e.g., smtp.yourprovider.com
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
@@ -29,4 +29,3 @@ SECURE_HSTS_SECONDS = 3600          # Enables HTTP Strict Transport Security
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-

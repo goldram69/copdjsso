@@ -8,4 +8,3 @@ def discourse_forum_url(request):
     return {
         'forum_url': settings.DISCOURSE_INSTANCE_URL,
     }
-

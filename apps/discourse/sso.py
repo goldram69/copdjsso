@@ -8,8 +8,8 @@ import logging
 from django.conf import settings
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
-from .exceptions import SSOValidationError
 from django.http import HttpResponseBadRequest
+from .exceptions import SSOValidationError
 
 logger = logging.getLogger(__name__)
 
