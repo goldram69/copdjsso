@@ -1,6 +1,6 @@
 # project/settings/development.py
-from .base import *
 import os
+from .base import *
 
 DEBUG = True
 #ALLOWED_HOSTS = ['localhost', '127.0.0.1']
@@ -8,11 +8,11 @@ DEBUG = True
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', '<dbname>'),
-        'USER': os.getenv('DB_USER', '<username>'),
-        'PASSWORD': os.getenv('DB_PASSWORD', '<password>'),
-        'HOST': os.getenv('DB_HOST', '<host>'),
-        'PORT': os.getenv('DB_PORT', '<port>'),
+        'NAME': os.getenv('DB_NAME', 'copilotdb'),
+        'USER': os.getenv('DB_USER', 'copuser'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'cop123'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
@@ -24,11 +24,11 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 
-DISCOURSE_CONNECT_SECRET='<secret>'
-DISCOURSE_SSO_RETURN_URL='<url>'
-DISCOURSE_API_KEY='<key>'
-DISCOURSE_INSTANCE_URL='<url>'
-DISCOURSE_ADMIN_USERNAME='<username>'
+DISCOURSE_CONNECT_SECRET = '$TheRedKid'
+DISCOURSE_SSO_RETURN_URL = 'https://192.168.1.27/session/sso_login'
+DISCOURSE_API_KEY = 'a36959858d658d6467191d65d85e900a5115ddaba6c45448abc9fafc09034412'
+DISCOURSE_INSTANCE_URL = 'https://192.168.1.27/'
+DISCOURSE_ADMIN_USERNAME = 'admin'
 
 LOGGING = {
     'version': 1,

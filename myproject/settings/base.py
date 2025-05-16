@@ -43,8 +43,8 @@ TEMPLATES = [
         # Must be defined for admin to work
         'BACKEND': 'django.template.backends.django.DjangoTemplates', 
         'DIRS': [
-                  BASE_DIR / 'templates',
-                  BASE_DIR / 'myproject/templates',  # Add this if needed
+                BASE_DIR / 'templates',
+                BASE_DIR / 'myproject/templates',  # Add this if needed
                 ],  # Optional: add your custom template directories here
 
         # Enables Django to search for templates in each app’s 'templates' directory

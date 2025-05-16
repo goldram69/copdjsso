@@ -7,6 +7,7 @@ from .models import DiscourseProfile
 
 User = get_user_model()
 
+
 @receiver(post_save, sender=User)
 def sync_user_on_create_or_update(sender, instance, created, **kwargs):
     """Automatically sync new or updated users with Discourse."""
